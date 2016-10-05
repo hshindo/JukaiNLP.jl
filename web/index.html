@@ -1,0 +1,122 @@
+<!doctype html>
+<html>
+<head>
+    <title>JukaiNLP</title>
+    <style>
+        #view {
+            width: 1000px;
+            height: 500px;
+            top: 200px;
+        }
+        #editor {
+            position: absolute;
+            bottom: 0px;
+            width: 1000px;
+            height: 300px;
+        }
+    </style>
+<link href='https://fonts.googleapis.com/css?family=Ubuntu' rel='stylesheet' type='text/css'>
+<link rel="stylesheet" type="text/css" href="http://weaver.nlplab.org/~brat/demo/latest/style-vis.css"/>
+<script src="http://weaver.nlplab.org/~brat/demo/latest/client/lib/head.load.min.js"></script>
+</head>
+<body>
+<!-- override a few style-vis.css settings for the embedded version to make things larger -->
+<style type="text/css">
+text { font-size: 20px; }
+.span text { font-size: 16px; }
+.arcs text { font-size: 15px; }
+</style>
+<div id="view"></div>
+<div id="editor"></div>
+
+<script src="http://code.jquery.com/jquery-3.1.0.min.js"></script>
+<script src="https://ace.c9.io/build/src/ace.js" charset="utf-8"></script>
+<script type="text/javascript">
+var connection = new WebSocket('ws://' + window.location.host);
+var editor = ace.edit("editor");
+editor.setFontSize(20);
+//editor.setTheme("ace/theme/monokai");
+editor.getSession().setUseWrapMode(true);
+editor.getSession().setTabSize(2);
+editor.focus();
+editor.getSession().on('change', function(e) {
+    var data = editor.getValue();
+    if (data.length == 0) {
+        dispatcher.post('requestRenderData', [{'text':""}]);
+        return;
+    }
+    connection.send(data);
+});
+var dispatcher;
+var conf;
+
+var bratLocation = 'http://weaver.nlplab.org/~brat/demo/latest';
+head.js(
+    // External libraries
+    bratLocation + '/client/lib/jquery.min.js',
+    bratLocation + '/client/lib/jquery.svg.min.js',
+    bratLocation + '/client/lib/jquery.svgdom.min.js',
+    // brat helper modules
+    bratLocation + '/client/src/configuration.js',
+    bratLocation + '/client/src/util.js',
+    bratLocation + '/client/src/annotation_log.js',
+    bratLocation + '/client/lib/webfont.js',
+    // brat modules
+    bratLocation + '/client/src/dispatcher.js',
+    bratLocation + '/client/src/url_monitor.js',
+    bratLocation + '/client/src/visualizer.js'
+);
+var webFontURLs = [
+    bratLocation + '/static/fonts/Astloch-Bold.ttf',
+    bratLocation + '/static/fonts/PT_Sans-Caption-Web-Regular.ttf',
+    bratLocation + '/static/fonts/Liberation_Sans-Regular.ttf'
+];
+
+$(function(){
+    connection.onmessage = function(msg) {
+        if (conf === undefined) {
+            conf = JSON.parse(msg.data);
+            head.ready(function() {
+                dispatcher = Util.embed('view', conf, {}, webFontURLs);
+            });
+        }
+        if (dispatcher === undefined) return;
+
+        var doc = JSON.parse(msg.data);
+        var text = "";
+        var entities = [];
+        var id = 1;
+        var pos = 0;
+        for (var i = 0; i < doc.length; i++) {
+            var sent = doc[i];
+            text += sent.map(t => t.form).join(" ") + "\n";
+            for (var k = 0; k < sent.length; k++) {
+                var t = sent[k];
+                t["id"] = "T" + id;
+                t["bpos"] = pos;
+                t["epos"] = pos + t.form.length;
+                var e = [ t.id, t.cat, [[ t.bpos, t.epos ]] ];
+                entities.push(e);
+                pos += t.form.length + 1;
+                id += 1;
+            }
+            // NE
+            for (var k = 0; k < sent.length; k++) {
+                var t = sent[k];
+                if (t.ne.length == 0) continue;
+                var tag = t.ne[0];
+                var len = t.ne[1];
+                var last = sent[k+len-1];
+                var e = [ t.id+"NE", tag, [[ t.bpos, last.epos ]] ];
+                entities.push(e);
+            }
+        }
+        var brat = { 'text': text, 'entities': entities };
+        dispatcher.post('requestRenderData', [brat]);
+    }
+});
+</script>
+<script type="text/javascript">
+</script>
+</body>
+</html>
