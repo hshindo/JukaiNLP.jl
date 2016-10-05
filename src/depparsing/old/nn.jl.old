@@ -1,0 +1,267 @@
+using Merlin
+
+type LocalFeedForward <: Model
+    word_f
+    tag_f
+    label_f
+    W
+end
+
+targetsize(m::LocalFeedForward) = size(m.W[end].w.data)[1]
+
+function myEmbed{T}(path::AbstractString, t::Type{T})
+    lines = open(readlines, path)
+    ws = Array(Var, length(lines))
+    for i = 1:length(lines)
+        items = split(chomp(lines[i]), ' ')
+        w = map(x -> parse(T,x), items)
+        ws[i] = Merlin.Param(w)
+    end
+    res = Embed(t, 1, 1)
+    res.ws = ws
+    res
+end
+
+function myLinear(T::Type, indim::Int, outdim::Int)
+    r = T(0.01)
+    w = rand(-r, r, outdim, indim)
+    b = fill(T(0), outdim, 1)
+    Linear(Merlin.Param(w),Merlin.Param(b))
+end
+
+function initmodel!(parser::DepParser, model::Type{LocalFeedForward};
+    sparsesizes=[20,20,12] ,embedsizes=[50,50,50], hiddensizes=[200])
+    T = Float32
+    # word_f = Embed(path, T)
+    word_f = myEmbed("../../dict/en-word_nyt.vec", Float32)
+    # word_f = Embed(T, length(parser.words), embedsizes[1])
+    tag_f = Embed(T, length(parser.tags), embedsizes[2])
+    label_f = Embed(T, length(parser.labels), embedsizes[3])
+    indim = sum(sparsesizes .* embedsizes)
+    outdim = 1 + 2 * length(parser.labels)
+    W = Array(Linear, length(hiddensizes)+1)
+    for i = 1:length(hiddensizes)
+        W[i] = myLinear(T, indim, hiddensizes[i])
+        indim = hiddensizes[i]
+    end
+    W[end] = myLinear(T, indim, outdim)
+    parser.model = LocalFeedForward(word_f, tag_f, label_f, W)
+    info("input: [S^word,S^tag,S^label] = ", sparsesizes)
+    info("embed dims: [word,tag,label] = ", embedsizes)
+    info("hidden layer: ", hiddensizes)
+    info("output dim: ", outdim)
+end
+
+# TODO: make State have id field
+# to tell where the State is in a batch
+# called from expand(::State ::Int)
+@compat function (m::LocalFeedForward){T}(s::State{T}, act::Int)
+    0f0
+end
+
+@compat function (m::LocalFeedForward){T}(batch::Vector{State{T}})
+    wordvec, tagvec, labelvec = [], [], []
+    for s in batch
+        wordids, tagids, labelids = sparsefeatures(s)
+        push!(wordvec, wordids)
+        push!(tagvec, tagids)
+        push!(labelvec, labelids)
+    end
+    wordmat = m.word_f(Var(hcat(wordvec...)))
+    tagmat = m.tag_f(Var(hcat(tagvec...)))
+    labelmat = m.label_f(Var(hcat(labelvec...)))
+    h0 = concat(1, wordmat, tagmat, labelmat)
+    h1 = tanh(m.W[1](h0))
+    m.W[2](h1)
+end
+
+function sparsefeatures(s::State)
+    if isfinal(s)
+        return fill(1, 20), fill(1, 20), fill(1, 12)
+    end
+
+    # word, tag
+    b0 = tokenat(s, s.right)
+    b1 = tokenat(s, s.right + 1)
+    b2 = tokenat(s, s.right + 2)
+    b3 = tokenat(s, s.right + 3)
+    s0 = tokenat(s, s.top)
+    s0l = tokenat(s, s.lchild)
+    s0l2 = tokenat(s, s.lsibl.lchild)
+    s0r = tokenat(s, s.rchild)
+    s0r2 = tokenat(s, s.rsibl.rchild)
+    s02l = tokenat(s, s.lchild.lchild)
+    s12r = tokenat(s, s.rchild.rchild)
+    s1 = tokenat(s, s.left)
+    s1l = tokenat(s, s.left.lchild)
+    s1l2 = tokenat(s, s.left.lsibl.lchild)
+    s1r = tokenat(s, s.left.rchild)
+    s1r2 = tokenat(s, s.left.rsibl.rchild)
+    s12l = tokenat(s, s.left.lchild.lchild)
+    s12r = tokenat(s, s.left.rchild.rchild)
+    s2 = tokenat(s, s.left.left)
+    s3 = tokenat(s, s.left.left.left)
+    
+    # labels
+    s0rc_label = labelat(s, s.rchild)
+    s0rc2_label = labelat(s, s.rsibl.rchild)
+    s0lc_label = labelat(s, s.lsibl)
+    s0lc2_label = labelat(s, s.lsibl.lsibl)
+    s02l_label = labelat(s, s.lsibl.left.lsibl)
+    s02r_label = labelat(s, s.rchild.rchild)
+    s1rc_label = labelat(s, s.left.rchild)
+    s1rc2_label = labelat(s, s.left.rsibl.rchild)
+    s1lc_label = labelat(s, s.left.lsibl)
+    s1lc2_label = labelat(s, s.left.lsibl.lsibl)
+    s12l_label = labelat(s, s.left.lsibl.left.lsibl)
+    s12r_label = labelat(s, s.rchild.rchild)
+
+    words = [b0.word, b1.word, b2.word, b3.word, s0.word, s0l.word, s0l2.word,
+    s0r.word, s0r2.word, s02l.word, s12r.word, s1.word, s1l.word, s1l2.word,
+    s1r.word, s1r2.word, s12l.word, s12r.word, s2.word, s3.word]
+
+    tags = [b0.tag, b1.tag, b2.tag, b3.tag, s0.tag, s0l.tag, s0l2.tag,
+    s0r.tag, s0r2.tag, s02l.tag, s12r.tag, s1.tag, s1l.tag, s1l2.tag,
+    s1r.tag, s1r2.tag, s12l.tag, s12r.tag, s2.tag, s3.tag]
+
+    labels = [s0rc_label, s0rc2_label, s0lc_label, s0lc2_label, s02l_label,
+    s02r_label, s1rc_label, s1rc2_label, s1lc_label, s1lc2_label,
+    s12l_label, s12r_label]
+
+    return words, tags, labels
+end
+
+# # creates array of batches of gold actions
+# # map( Var, [[act_1 x batchsize], [act_2 x batchsize]...] )
+# function goldseq{T}(ss::Vector{State{T}})
+#     labelsize = targetsize(ss[1].parser.model)
+#     batchsize = length(ss)
+#     golds = Matrix{Float32}[]
+#     for i = 1:batchsize
+#         s = ss[i]
+#         while !isfinal(s)
+#             s = expandgold(s)[1]
+#             idx = s.step - 1
+#             while length(golds) < idx
+#                 push!(golds, zeros(Float32, labelsize, batchsize))
+#             end
+#             golds[idx][s.prevact, i] = 1f0
+#         end
+#     end
+#     golds
+# end
+#
+function goldseq{T}(s::State{T})
+    gold = beamsearch(s, 1, expandgold)[end][1]
+    map(s -> s.prevact, state2array(gold)[2:end])
+end
+
+function goldbatch(golds, labelsize)
+    res = Array(Matrix{Float32}, maximum(length, golds))
+    for i = 1:length(res)
+        res[i] = zeros(Float32, labelsize, length(golds))
+    end
+    for i = 1:length(golds)
+        for (step, act) in enumerate(golds[i])
+            res[step][act, i] = 1f0
+        end
+    end
+    res
+end
+
+function parsegreedy!{T}(opt, parser::DepParser{T}, ss, golds)
+    loss = 0.0
+    labelsize = targetsize(parser.model)
+    res = copy(ss)
+    i = 1
+    while !all(isfinal, res)
+        preds = parser.model(res)
+        for j = 1:length(res)
+            s = res[j]
+            isfinal(s) && continue
+            pred = preds.data[:, j] # make copy
+            bestact = argmax(pred, 1)[1]
+            # look for best & valid action to perform
+            for k = 1:labelsize
+                isvalid(s, acttype(bestact)) && break
+                pred[bestact] = typemin(Float32)
+                bestact = argmax(pred, 1)[1]
+            end
+            res[j] = expand(s, bestact)
+        end
+        isempty(golds) || ( loss += update!(opt, golds[i], preds) )
+        i += 1
+    end
+    res, loss
+end
+
+function update!{T}(opt::Union{SGD,AdaGrad}, gold::Matrix{T}, pred::Var)
+    _, batchsize = size(gold)
+    l = crossentropy(gold, pred)
+    l.data /= batchsize
+    loss = sum(l.data)
+    vars = gradient!(l)
+    for v in vars
+        # l2 normalization
+        BLAS.axpy!(Float32(10e-8), v.data, v.grad)
+        opt(v.data, v.grad)
+    end
+    loss
+end
+
+typealias Doc Vector{Vector{Token}}
+
+function train!{T}(::Type{LocalFeedForward}, parser::DepParser{T}, trainsents::Doc,
+    testsents::Doc=Vector{Token}[]; batchsize=32, iter=20, progbar=true)
+    info("LOADING SENTENCES")
+    info("WILL RUN $iter ITERATIONS")
+
+    nsamples = length(trainsents)
+    opt = SGD(0.01)
+    # opt = AdaGrad(0.01)
+    initmodel!(parser, LocalFeedForward)
+    batchsize = 1000
+    labelsize = targetsize(parser.model)
+    info("OPTIMIZER: ", typeof(opt))
+    info("BATCH ESIZE: $batchsize LABEL SIZE: $labelsize")
+    info("#BATCHES: $(div(nsamples, batchsize))")
+    info("#SENTS: $(nsamples)")
+
+    trainstates = map(trainsents) do s
+        State(s, parser)
+    end
+    goldactions = map(goldseq, trainstates)
+
+    for i = 1:iter
+        info("ITER $i TRAINING")
+        # batch = abs(rand(Int, batchsize)) % nsamples
+        batch = [1 + (abs(n) % (nsamples-1)) for n in rand(Int, batchsize)]
+        ss = sub(trainstates, batch)
+        golds = goldbatch(sub(goldactions, batch), labelsize)
+        res, loss = parsegreedy!(opt, parser, ss, golds)
+        @assert !all(isfinal, ss)
+        info(now(), " LOSS: ", loss)
+        evaluate(parser, res)
+
+        if !isempty(testsents)
+            info("ITER $i TESTING")
+            res = decode(LocalFeedForward, parser, testsents)
+            evaluate(parser, res)
+        end
+    end
+end
+
+function decode{T}(::Type{LocalFeedForward}, parser::DepParser{T}, sents::Doc;
+    batchsize=32, progbar=true)
+    batches = 1:batchsize:length(sents)
+    progbar && ( p = Progress(length(batches)) )
+    res = State{T}[]
+    for k in batches
+        batch = k:min(k+batchsize-1, endof(sents))
+        ss = map(s -> State(s, parser), sents[batch])
+        parsegreedy!(nothing, parser, ss, [])
+        append!(res, ss)
+    end
+    res
+end
+

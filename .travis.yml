@@ -1,0 +1,27 @@
+language: julia
+
+os:
+    - linux
+    - osx
+
+julia:
+    - 0.5
+
+notifications:
+    email: false
+
+before_script:
+  - export PATH=$HOME/.local/bin:$PATH
+
+install:
+  #- pip install python-markdown-math
+
+script:
+  - if [[ -a .git/shallow ]]; then git fetch --unshallow; fi
+  - julia -e 'Pkg.clone("https://github.com/hshindo/Merlin.jl.git"); Pkg.build("Merlin")'
+  - julia -e 'Pkg.clone("https://github.com/hshindo/TransitionParser.jl.git")'
+  - julia -e 'Pkg.clone(pwd()); Pkg.build("JukaiNLP"); Pkg.test("JukaiNLP"; coverage=true)'
+
+after_success:
+  #- julia -e 'Pkg.clone("https://github.com/MichaelHatherly/Documenter.jl")'
+  #- julia -e 'cd(Pkg.dir("JukaiNLP")); include(joinpath("docs", "make.jl"))'
