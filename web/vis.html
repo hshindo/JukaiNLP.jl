@@ -1,0 +1,130 @@
+<!doctype html>
+<html>
+<head>
+    <title>JukaiWeb</title>
+    <style>
+        #view {
+            width: 1000px;
+            height: 400px;
+            border: 1px solid lightgray;
+        }
+        #editor {
+            position: absolute;
+            bottom: 50px;
+            width: 1000px;
+            height: 300px;
+        }
+        p.sentence {
+            font-size: 16pt;
+            font-family: 'Ubuntu', sans-serif;
+            color: navy;
+        }
+    </style>
+    <link href='https://fonts.googleapis.com/css?family=Ubuntu' rel='stylesheet' type='text/css'>
+    <link rel="stylesheet" type="text/css" href="http://weaver.nlplab.org/~brat/demo/latest/style-vis.css"/>
+    <script type="text/javascript" src="http://weaver.nlplab.org/~brat/demo/latest/client/lib/head.load.min.js"></script>
+</head>
+<body>
+<div id="view"></div>
+<div id="editor"></div>
+
+<script src="http://code.jquery.com/jquery-2.0.3.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.16.0/vis.min.js"></script>
+<script src="https://ace.c9.io/build/src/ace.js" type="text/javascript" charset="utf-8"></script>
+<script type="text/javascript">
+
+var connection = new WebSocket('ws://' + window.location.host);
+var editor = ace.edit("editor");
+editor.setFontSize(20);
+editor.setTheme("ace/theme/monokai");
+editor.getSession().setUseWrapMode(true);
+editor.getSession().setTabSize(2);
+editor.focus();
+editor.getSession().on('change', function(e) {
+    var data = editor.getValue();
+    if (data.length == 0) { return; }
+    connection.send(data);
+});
+
+function draw(sent) {
+    var nodes = [];
+    var edges = [];
+    for (var i = 0; i < sent.length; i++) {
+        var t = sent[i];
+        nodes.push({id:t.id, label:t.form+'\n'+t.tag, x:t.x*100, y:t.y*100});
+        edges.push({from:t.id, to:t.headid});
+    }
+
+    var container = document.getElementById('view');
+    var g = {nodes:nodes, edges:edges};
+    var options = {
+        nodes: {
+            font: {
+                size: 28
+            },
+            shadow: true,
+            shape: 'text'
+        },
+        edges: {
+            //smooth: {type: 'dynamic'},
+        },
+        physics:false
+    }
+    new vis.Network(container, g, options);
+}
+
+function addProperty(sent) {
+    // deps: dependency ids
+    var tokens = {};
+    for (var i = 0; i < sent.length; i++) {
+        var t = sent[i];
+        t['deps'] = [];
+        tokens[t.id] = t;
+    }
+    for (var id in tokens) {
+        var t = tokens[id];
+        t['x'] = id;
+        if (t.headid == 0) continue;
+        var h = tokens[t.headid];
+        h.deps.push(t);
+    }
+    function setPosition(token) {
+        var deps = token.deps;
+        for (var i = 0; i < deps.length; i++) {
+            deps[i].y = token.y + 1;
+            setPosition(deps[i]);
+        }
+    }
+    for (var id in tokens) {
+        var t = tokens[id];
+        if (t.headid == 0) {
+            t.y = 0;
+            setPosition(t);
+        }
+    }
+}
+
+$(function(){
+    connection.onmessage = function(msg){
+        var doc = JSON.parse(msg.data);
+        var brat = {};
+        //$("#tokens").empty();
+        for (var i = 0; i < 1; i++) {
+            var sent = doc[i];
+            brat["text"] = sent.map(t => t.form).join(" ");
+            var entities = [];
+            for (var k = 0; k < sent.length; k++) {
+                var t = sent[k];
+                var e = [ t.id, t.cat, [[ t.start, t.end ]];
+                entities.push(e);
+            }
+            brat["entities"] = entities;
+            //$("#tokens").append($("<p class='sentence'></p>").html(line));
+            //addProperty(sent);
+            //draw(sent);
+        }
+    }
+});
+</script>
+</body>
+</html>
