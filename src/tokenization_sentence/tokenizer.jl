@@ -8,6 +8,7 @@ function Tokenizer()
     T = Float32
     embed = Embedding(T, 100, 10)
     ls = [Linear(T,70,70), Linear(T,70,4)]
+    #=
     g = @graph begin
         chars = identity(:chars)
         x = Var(reshape(chars,1,length(chars)))
@@ -18,6 +19,7 @@ function Tokenizer()
         x = ls[2](x)
         x
     end
+    =#
     Tokenizer(dict, g)
 end
 

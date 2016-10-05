@@ -5,12 +5,11 @@ type Tagger
     model
 end
 
-function Tagger(filename::String)
+function Tagger(filename)
     words = h5read(filename, "str")
-    w = h5read(filename, "vec")
-    wordfun = Embedding(w)
     word_dict = IdDict(words)
     char_dict = IdDict(String["UNKNOWN","="])
+    w = h5read(filename, "vec")
     model = POSModel(w)
     Tagger(word_dict, char_dict, IdDict(), model)
 end

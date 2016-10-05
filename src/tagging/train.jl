@@ -7,7 +7,9 @@ function flatten(data::Vector)
 end
 
 function train(t::Tagger, nepochs::Int, traindata::Vector, testdata::Vector)
-    data_x, data_y = encode(t, traindata)
+    train_x, train_y = encode(t, traindata)
+    #train_x = train_x[1:3000]
+    #train_y = train_y[1:3000]
     test_x, test_y = encode(t, testdata)
     #pred_y = Int[]
     #for x in testdata
@@ -20,14 +22,14 @@ function train(t::Tagger, nepochs::Int, traindata::Vector, testdata::Vector)
     info("# chars: $(length(t.char_dict))")
     info("# tags: $(length(t.tag_dict))")
 
-    opt = SGD(0.001, momentum=0.0)
+    opt = SGD(0.001)
     for epoch = 1:nepochs
         opt.rate = 0.0075 / epoch
         #opt.rate = 0.0075 / epoch
         #data_xx = setunkown(data_x, t.word_dict["UNKNOWN"])
 
         println("epoch: $(epoch)")
-        loss = fit(t.model, crossentropy, opt, data_x, data_y)
+        loss = fit(train_x, train_y, t.model, crossentropy, opt)
         println("loss: $(loss)")
 
         test_z = Int[]

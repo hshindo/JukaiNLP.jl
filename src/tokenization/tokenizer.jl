@@ -7,19 +7,15 @@ end
 function Tokenizer()
     dict = IdDict(String["UNKNOWN", " ", "\n"])
     T = Float32
-    embed = Embedding(T, 100, 10)
-    ls = [Linear(T,70,70), Linear(T,70,4)]
-    g = @graph begin
-        chars = identity(:chars)
-        x = Var(reshape(chars,1,length(chars)))
-        x = embed(x)
-        x = window2d(x,10,7,1,1,0,3)
-        x = ls[1](x)
-        x = relu(x)
-        x = ls[2](x)
-        x
-    end
-    Tokenizer(dict, IOE(), g)
+    x = GraphNode()
+    x = window(x, (7,), pad=3)
+    x = GraphNode(constant, x)
+    x = Embedding(T,300,10)(x)
+    x = Linear(T,70,70)(x)
+    x = relu(x)
+    x = Linear(T,70,3)(x)
+    f = compile(x)
+    Tokenizer(dict, IOE(), f)
 end
 
 function (t::Tokenizer)(chars::Vector{Char})

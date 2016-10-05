@@ -34,33 +34,48 @@ end
 
 function train(t::Tokenizer, nepochs::Int, traindata::Vector, testdata::Vector)
     function conv(data)
-        res_x, res_y = Vector{Int}[], Vector{Int}[]
-        for x in data
-            chars, ranges = encode(t, x)
-            tags = encode(t.tagset, ranges)
-            push!(res_x, chars)
-            push!(res_y, tags)
-        end
-        res_x, res_y
+        chars, ranges = encode(t, data)
+        tags = encode(t.tagset, ranges)
+        # mini-batch
+        chars_batch = [chars[i:min(i+1000-1,length(chars))] for i=1:1000:length(chars)]
+        tags_batch = [tags[i:min(i+1000-1,length(tags))] for i=1:1000:length(tags)]
+        chars_batch, tags_batch
     end
     train_x, train_y = conv(traindata)
     test_x, test_y = conv(testdata)
 
-    #opt = AdaGrad(0.01)
-    opt = SGD(0.0001, momentum=0.9)
+    opt = SGD(0.001)
     for epoch = 1:nepochs
         println("epoch: $(epoch)")
-        loss = fit(t.model, crossentropy, opt, train_x, train_y)
+        loss = fit(train_x, train_y, t.model, crossentropy, opt)
         println("loss: $(loss)")
 
         test_z = map(test_x) do x
             argmax(t.model(x).data, 1)
         end
+        y, z = flatten(test_y), flatten(test_z)
+        ranges_y, ranges_z = decode(t.tagset, y), decode(t.tagset, z)
+        fscore(ranges_y, ranges_z)
+
         acc = accuracy(flatten(test_y), flatten(test_z))
 
         println("test acc.: $(acc)")
         println("")
     end
+end
+
+function fscore(golds::Vector{UnitRange{Int}}, preds::Vector{UnitRange{Int}})
+    g = Set(golds)
+    p = Set(preds)
+    inter = intersect(g, p)
+    correct = length(inter)
+
+    prec = correct / length(p)
+    recall = correct / length(g)
+    fvalue = 2*recall*prec/(recall+prec)
+    println("precision: $(prec)")
+    println("recall: $(recall)")
+    println("f-value: $(fvalue)")
 end
 
 function accuracy(golds::Vector{Int}, preds::Vector{Int})

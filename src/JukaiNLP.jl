@@ -2,9 +2,7 @@ module JukaiNLP
 
 export CoNLL
 include("io/CoNLL.jl")
-#export train
 
-include("io.jl")
 include("iddict.jl")
 include("tokenization/Tokenization.jl")
 include("tokenization_sentence/TokenizationSentence.jl")

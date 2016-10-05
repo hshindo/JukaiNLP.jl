@@ -11,8 +11,8 @@ function read(path::String, columns::Int...)
             sent = []
         else
             items = split(line, '\t')
-            length(items) > 0 && (items = items[columns])
-            push!(sent, items)
+            data = map(c -> String(items[c]), columns)
+            push!(sent, data)
         end
     end
     length(sent) > 0 && push!(doc, sent)
