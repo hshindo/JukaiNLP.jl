@@ -1,5 +1,7 @@
 # JukaiNLP: NLP Toolkit based on Deep Learning
 
+*This is under heavy development.*
+
 [![Build Status](https://travis-ci.org/hshindo/JukaiNLP.jl.svg?branch=master)](https://travis-ci.org/hshindo/JukaiNLP.jl)
 <!-- [![Build status](https://ci.appveyor.com/api/projects/status/github/hshindo/JukaiNLP.jl?branch=master)](https://ci.appveyor.com/project/hshindo/jukaiNLP-jl/branch/master) -->
 
@@ -15,11 +17,9 @@ Then,
 ```julia
 julia> Pkg.clone("https://github.com/hshindo/TransitionParser.jl.git")
 julia> Pkg.clone("https://github.com/hshindo/JukaiNLP.jl.git")
-julia> Pkg.update()
 ```
 
 ## Tokenization
-
 ```julia
 using JukaiNLP
 using JukaiNLP.Tokenization
@@ -41,6 +41,11 @@ train(t, 100, data)
 str = "Pierre Vinken, 61 years old, will join the board.\nI have a pen.\n"
 result = t(str)
 join(map(r -> str[r], result), " ")
+```
+
+## POS-Tagging
+```julia
+
 ```
 
 ## Dependency Parsing

@@ -4,10 +4,26 @@ type POSModel
     sentfun
 end
 
-function POSModel(w)
+function POSModel(wordfun)
     T = Float32
-    wordfun = Embedding(w)
 
+    x = Var()
+    y = window(x, (5,), pad=(2,))
+    y = Embedding(T,100,10)(y)
+    y = Linear(T,50,50)(y)
+    y = max(y, 2)
+    charfun = Graph(y, x)
+
+    w = Var()
+    c = Var()
+    y = concat(1, w, c)
+    y = window(y, (150,5), pad=(0,2))
+    y = Linear(T,750,300)(y)
+    y = relu(y)
+    y = Linear(T,300,45)(y)
+    sentfun = Graph(y, (w,c))
+
+    #=
     charfuns = [Embedding(T,100,10), Linear(T,50,50)]
     charfun = @graph begin
         x = charfuns[1](:x)
@@ -16,7 +32,8 @@ function POSModel(w)
         x = max(x,2)
         x
     end
-
+    =#
+    #=
     sentfuns = [Linear(T,750,300), Linear(T,300,45)]
     sentfun = @graph begin
         x = concat(1, :wordmat, :charmat)
@@ -26,6 +43,7 @@ function POSModel(w)
         x = sentfuns[2](x)
         x
     end
+    =#
     POSModel(wordfun, charfun, sentfun)
 end
 
