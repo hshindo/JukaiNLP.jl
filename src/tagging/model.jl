@@ -6,7 +6,6 @@ end
 
 function POSModel(wordfun)
     T = Float32
-
     x = Var()
     y = window(x, (5,), pad=(2,))
     y = Embedding(T,100,10)(y)
