@@ -3,14 +3,13 @@ using JukaiNLP
 using JukaiNLP.Tagging
 using Merlin
 
-path = joinpath(Pkg.dir("JukaiNLP"), ".corpus")
+path = "C:/Users/hshindo/Dropbox/tagging/.corpus"
 t = Tagger("$(path)/nyt100.h5")
 
 traindata = CoNLL.read("$(path)/wsj_00-18.conll", 2, 5)
 testdata = CoNLL.read("$(path)/wsj_22-24.conll", 2, 5)
 
-
-train(t, 5, traindata, testdata)
+train(t, 10, traindata, testdata)
 throw("finish")
 
 modelpath = "C:/Users/hshindo/Desktop/postagger.h5"

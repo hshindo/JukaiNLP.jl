@@ -8,15 +8,7 @@ end
 
 function train(t::Tagger, nepochs::Int, traindata::Vector, testdata::Vector)
     train_x, train_y = encode(t, traindata)
-    #train_x = train_x[1:3000]
-    #train_y = train_y[1:3000]
     test_x, test_y = encode(t, testdata)
-    #pred_y = Int[]
-    #for x in testdata
-    #    for items in x
-    #        push!(pred_y, t.tag_dict[items[2]])
-    #    end
-    #end
 
     info("# words: $(length(t.word_dict))")
     info("# chars: $(length(t.char_dict))")
@@ -25,8 +17,6 @@ function train(t::Tagger, nepochs::Int, traindata::Vector, testdata::Vector)
     opt = SGD(0.001)
     for epoch = 1:nepochs
         opt.rate = 0.0075 / epoch
-        #opt.rate = 0.0075 / epoch
-        #data_xx = setunkown(data_x, t.word_dict["UNKNOWN"])
 
         println("epoch: $(epoch)")
         loss = fit(train_x, train_y, t.model, crossentropy, opt)

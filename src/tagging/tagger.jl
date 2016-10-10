@@ -10,7 +10,7 @@ function Tagger(filename)
     word_dict = IdDict(words)
     char_dict = IdDict(String["UNKNOWN","="])
     w = h5read(filename, "vec")
-    model = POSModel(w)
+    model = POSModel(Embedding(w))
     Tagger(word_dict, char_dict, IdDict(), model)
 end
 

@@ -7,8 +7,8 @@ end
 function POSModel(wordfun)
     T = Float32
     x = Var()
-    y = window(x, (5,), pad=(2,))
-    y = Embedding(T,100,10)(y)
+    y = Embedding(T,100,10)(x)
+    y = window(y, (50,), strides=(10,), pads=(20,))
     y = Linear(T,50,50)(y)
     y = max(y, 2)
     charfun = Graph(y, x)
@@ -16,11 +16,11 @@ function POSModel(wordfun)
     w = Var()
     c = Var()
     y = concat(1, w, c)
-    y = window(y, (150,5), pad=(0,2))
+    y = window(y, (750,), strides=(150,), pads=(300,))
     y = Linear(T,750,300)(y)
     y = relu(y)
     y = Linear(T,300,45)(y)
-    sentfun = Graph(y, (w,c))
+    sentfun = Graph(y, w, c)
 
     #=
     charfuns = [Embedding(T,100,10), Linear(T,50,50)]
