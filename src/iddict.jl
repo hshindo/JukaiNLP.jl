@@ -8,7 +8,7 @@ A dictionary for converting key::T into integer id.
 
 ## 👉 Example
 ```julia
-dict = IdDict{AbstractString}()
+dict = IdDict{String}()
 push!(dict, "abc") == 1
 push!(dict, "def") == 2
 push!(dict, "abc") == 1

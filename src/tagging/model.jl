@@ -49,11 +49,11 @@ end
 function (m::POSModel)(tokens::Vector{Token})
     word_vec = map(t -> t.word, tokens)
     wordvec = reshape(word_vec, 1, length(word_vec))
-    wordmat = m.wordfun(Var(wordvec))
+    wordmat = m.wordfun(constant(wordvec))
 
     charvecs = map(tokens) do t
         charvec = reshape(t.chars, 1, length(t.chars))
-        m.charfun(Var(charvec))
+        m.charfun(constant(charvec))
     end
     charmat = concat(2, charvecs)
     m.sentfun(wordmat, charmat)

@@ -37,15 +37,14 @@ end
 
 function encode(t::Tagger, doc::Vector)
     data_x, data_y = Vector{Token}[], Vector{Int}[]
+    unkword = t.word_dict["UNKNOWN"]
     for sent in doc
         push!(data_x, Token[])
         push!(data_y, Int[])
         for items in sent
             word, tag = items[1], items[2]
             word0 = replace(word, r"[0-9]", '0') |> lowercase
-            #wordid = push!(t.word_dict, word0)
-
-            wordid = get(t.word_dict, word0, 1) # experimental
+            wordid = get(t.word_dict, word0, unkword)
 
             chars = Vector{Char}(word)
             charids = map(c -> push!(t.char_dict,string(c)), chars)
