@@ -2,9 +2,27 @@ workspace()
 using JukaiNLP
 using JukaiNLP.Tagging
 using Merlin
+using HDF5
 
-path = "C:/Users/hshindo/Dropbox/tagging/.corpus"
-t = Tagger("$(path)/nyt100.h5")
+#=
+path = "C:/Users/hshindo/Dropbox/tagging3"
+vecs = open(readlines,"$(path)/nyt100.lst")
+vecs = map(vecs) do v
+    s = split(chomp(v))
+    map(x -> parse(Float32,x), s)
+end
+vec = hcat(vecs...)
+str = open(readlines,"$(path)/words.lst")
+str = map(chomp, str)
+h5open("enwords.h5", "w") do file
+    write(file, "s", str)
+    write(file, "v", vec)
+end
+throw("finish")
+=#
+
+path = joinpath(Pkg.dir("JukaiNLP"), ".corpus/postagging")
+t = Tagger("$(path)/enwords.h5")
 
 traindata = CoNLL.read("$(path)/wsj_00-18.conll", 2, 5)
 testdata = CoNLL.read("$(path)/wsj_22-24.conll", 2, 5)
