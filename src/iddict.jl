@@ -28,6 +28,11 @@ type IdDict{T}
 end
 IdDict() = IdDict{Any}()
 
+function IdDict(path::String)
+    data = map(x -> chomp(x), open(readlines,path))
+    IdDict(data)
+end
+
 function IdDict{T}(data::Vector{T})
     d = IdDict{T}()
     for x in data

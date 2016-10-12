@@ -4,6 +4,13 @@ type POSModel
     sentfun
 end
 
+function POSModel2(wordfun)
+    T = Float32
+    charfuns = [Embedding(T,100,10), Linear(T,50,50)]
+    sentfuns = [Linear(T,750,300), Linear(T,300,45)]
+    POSModel(wordfun, charfuns, sentfuns)
+end
+
 function POSModel(wordfun)
     T = Float32
     x = Var()
@@ -58,3 +65,18 @@ function (m::POSModel)(tokens::Vector{Token})
     charmat = concat(2, charvecs)
     m.sentfun(wordmat, charmat)
 end
+
+#=
+function (m::POSModel)(tokens::Vector{Token})
+    word_vec = map(t -> t.word, tokens)
+    wordvec = reshape(word_vec, 1, length(word_vec))
+    wordmat = m.wordfun(constant(wordvec))
+
+    charvecs = map(tokens) do t
+        charvec = reshape(t.chars, 1, length(t.chars))
+        m.charfun(constant(charvec))
+    end
+    charmat = concat(2, charvecs)
+    m.sentfun(wordmat, charmat)
+end
+=#

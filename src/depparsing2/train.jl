@@ -1,14 +1,4 @@
-type Parser
-    worddict::IdDict{String}
-    catdict::IdDict{String}
-    model
-end
-
-function Parser()
-
-end
-
-function train(p::Parser, traindata, testdata)
+function train(traindata::Vector, testdata::Vector)
     for epoch = 1:20
         println("epoch: $(epoch)")
         loss = 0.0

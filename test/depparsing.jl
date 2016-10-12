@@ -1,10 +1,20 @@
 workspace()
-using JLD
 using JukaiNLP
 using JukaiNLP.DepParsing
-using JukaiNLP.DepParsing: Perceptron, FeedForward, DepParser, Unlabeled, Labeled
-using JukaiNLP.DepParsing: readconll, train!, train2!, decode, evaluate
+using HDF5
 
+path = joinpath(Pkg.dir("JukaiNLP"), ".corpus/nyt100.h5")
+forms = h5read(path, "str")
+formdict = IdDict(forms)
+
+conv(form, cat, head) = push!(formdict,form), push!(catdict,cat), parse(Int,head)
+
+trainpath = joinpath(Pkg.dir("JukaiNLP"), ".corpus/wsj_02-21.conll")
+testpath = joinpath(Pkg.dir("JukaiNLP"), ".corpus/wsj_23.conll")
+traindata = CoNLL.read(trainpath, 2, 5, 7)
+testdata = CoNLL.read(testpath, 2, 5, 7)
+
+#=
 # parser for unlabeled dependency tree
 path = Pkg.dir("JukaiNLP")
 parser = DepParser(Unlabeled, "$(path)/dict/en-word_nyt.dict")
@@ -29,3 +39,4 @@ train!(FeedForward, parser, trainsents, iter=20)
 
 res = parser(testsents)
 evaluate(parser, res)
+=#

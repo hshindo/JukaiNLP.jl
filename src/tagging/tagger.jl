@@ -18,9 +18,9 @@ function (t::Tagger)(words::Vector)
     unkword = t.word_dict["UNKNOWN"]
     unkchar = t.char_dict["UNKNOWN"]
     tokens = map(words) do word
-        word0 = replace(word, r"[0-9]", '0') |> lowercase
-        wordid = get(t.word_dict, word0, unkword)
-        chars = Vector{Char}(word)
+        word0 = replace(word, r"[0-9]", '0')
+        wordid = get(t.word_dict, lowercase(word0), unkword)
+        chars = Vector{Char}(word0)
         charids = map(c -> get(t.char_dict,string(c),unkchar), chars)
         Token(wordid, charids)
     end

@@ -8,7 +8,7 @@ end
 
 lessthan{T}(x::Node{T}, y::Node{T}) = x.score > y.score
 
-function seqof{T}(finalstate::T)
+function getseq{T}(finalstate::T)
     seq = T[]
     s = finalstate
     while true
