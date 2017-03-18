@@ -11,10 +11,10 @@ type State
     lc::State
     rc::State
 
-    State(tokens) = new(tokens, 1, 1, 2)
+    State(tokens) = new(tokens, 1, 0.0, 1, 2)
 end
 
-Base.done(s::State) = isdefined(s,:left) && s.right == length(s.tokens)+1
+Base.done(s::State) = s.left == nothing && s.right == length(s.tokens) + 1
 
 function Base.next(s::State, acts::Vector{Int})
     scores = s.scorefun(s, acts)

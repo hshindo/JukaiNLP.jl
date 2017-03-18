@@ -1,14 +1,25 @@
-abstract Tagset
+module Tagset
+
+export encode, decode
 
 """
     I: begin or internal, O: outside, E: end
 """
-immutable IOE <: Tagset
+immutable IOE
     I::Int
     O::Int
     E::Int
 end
 IOE() = IOE(1,2,3)
+
+function encode(tagset::IOE, ranges::Vector{UnitRange{Int}})
+    tags = fill(tagset.O, last(ranges[end]))
+    for r in ranges
+        tags[r] = tagset.I
+        tags[last(r)] = tagset.E
+    end
+    tags
+end
 
 function decode(tagset::IOE, tags::Vector{Int})
     bpos = 0
@@ -24,11 +35,4 @@ function decode(tagset::IOE, tags::Vector{Int})
     ranges
 end
 
-function encode(tagset::IOE, ranges::Vector{UnitRange{Int}})
-    tags = fill(tagset.O, last(ranges[end]))
-    for r in ranges
-        tags[r] = tagset.I
-        tags[last(r)] = tagset.E
-    end
-    tags
 end

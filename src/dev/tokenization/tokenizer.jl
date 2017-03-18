@@ -5,15 +5,15 @@ type Tokenizer
 end
 
 function Tokenizer()
-    dict = IdDict(["UNKNOWN", " ", "\n"])
+    dict = IdDict(String["UNKNOWN", " ", "\n"])
     T = Float32
-    x = Var()
-    h = window(x, (7,), pads=(3,), strides=())
-    h = Var(constant, h)
-    h = Embedding(T,300,10)(x)
-    h = Linear(T,70,70)(x)
-    h = relu(x)
-    h = Linear(T,70,3)(x)
+    x = GraphNode()
+    x = window(x, (7,), pad=3)
+    x = GraphNode(constant, x)
+    x = Embedding(T,300,10)(x)
+    x = Linear(T,70,70)(x)
+    x = relu(x)
+    x = Linear(T,70,3)(x)
     f = compile(x)
     Tokenizer(dict, IOE(), f)
 end
