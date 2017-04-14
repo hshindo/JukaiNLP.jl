@@ -4,3 +4,6 @@
 .corpus
 sandbox.jl
 .data
+*.h5
+*.so
+*.dll
