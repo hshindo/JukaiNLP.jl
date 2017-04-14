@@ -1,5 +1,7 @@
 module JukaiNLP
 
-include("iddict.jl")
+export train
+
+include("segmentation/segmenter.jl")
 
 end
