@@ -1,6 +1,3 @@
-export IdDict
-export load
-
 """
     IdDict{T}
 
@@ -29,11 +26,11 @@ end
 IdDict() = IdDict{Any}()
 
 function IdDict(path::String)
-    data = map(x -> chomp(x), open(readlines,path))
+    data = map(chomp, open(readlines,path))
     IdDict(data)
 end
 
-function IdDict{T}(data::Vector{T})
+function IdDict{T}(data::T...)
     d = IdDict{T}()
     for x in data
         push!(d, x)
@@ -42,7 +39,7 @@ function IdDict{T}(data::Vector{T})
 end
 
 function load(::Type{IdDict}, path)
-    data = map(x -> chomp(x), open(readlines,path))
+    data = map(chomp, open(readlines,path))
     IdDict(data)
 end
 
@@ -52,7 +49,7 @@ Base.getkey(d::IdDict, id::Int) = d.id2key[id]
 
 Base.getindex(d::IdDict, key) = d.key2id[key]
 
-Base.get(d::IdDict, key, default=0) = get(d.key2id, key, default)
+Base.get(d::IdDict, key, default) = get(d.key2id, key, default)
 
 Base.length(d::IdDict) = length(d.key2id)
 
@@ -69,4 +66,4 @@ function Base.push!(d::IdDict, key)
     id
 end
 
-Base.append!(d::IdDict, keys::Vector) = map(k -> push!(d,k), keys)
+Base.append!(d::IdDict, keys) = map(k -> push!(d,k), keys)
